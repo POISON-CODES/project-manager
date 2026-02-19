@@ -2,14 +2,19 @@
 
 Welcome to the NexusFlow API Documentation. This directory provides a structured breakdown of all backend endpoints.
 
+## 🔐 Global Authentication
+> **IMPORTANT**: All routes (except `GET /forms/:id/public`) require a valid Supabase JWT in the `Authorization` header.
+> 
+> **Format**: `Authorization: Bearer <your_supabase_jwt>`
+>
+> Controllers use Class-level authentication guards for consistent security. Some administrative endpoints require specific roles (Admin/Lead).
+
 ## Auth
 - [Sync User](file:///c:/Users/Quicksell%20Work/Desktop/project%20manager/Backend%20planning/backend_apis/auth/sync/POST.md)
 
 ## Users
 - [List Users / Me](file:///c:/Users/Quicksell%20Work/Desktop/project%20manager/Backend%20planning/backend_apis/users/GET.md)
-- [Update User (Admin)](file:///c:/Users/Quicksell%20Work/Desktop/project%20manager/Backend%20planning/backend_apis/users/PATCH.md)
-
-> **Authentication Note**: All routes (except designated public forms) require a valid Supabase JWT. Controllers use Class-level `@UseGuards(JwtAuthGuard)` for consistent security.
+- [Update User (Admin Status/Role)](file:///c:/Users/Quicksell%20Work/Desktop/project%20manager/Backend%20planning/backend_apis/users/PATCH.md)
 
 ## Projects
 - [Create Project](file:///c:/Users/Quicksell%20Work/Desktop/project%20manager/Backend%20planning/backend_apis/projects/POST.md)

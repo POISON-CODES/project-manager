@@ -4,7 +4,7 @@ List all projects.
 
 ## Details
 - **Description**: Retrieves a list of all projects in the system.
-- **Authentication**: None (Public access for dashboard view).
+- **Authentication**: JWT Required (`Authorization: Bearer <token>`).
 - **Endpoint Type**: Read.
 
 ## Request

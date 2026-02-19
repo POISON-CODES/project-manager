@@ -4,7 +4,7 @@ Claim a project (Assign yourself as owner).
 
 ## Details
 - **Description**: Assigns the authenticated user as the owner of the project.
-- **Authentication**: JWT Required.
+- **Authentication**: JWT Required (`Authorization: Bearer <token>`).
 - **Parameters**:
     - `id`: Project UUID.
 

@@ -4,8 +4,8 @@ Create a new project.
 
 ## Details
 - **Description**: Initializes a new project in the system. Triggers a `PROJECT_CREATED` workflow if configured.
-- **Authentication**: JWT Required (MEMBER, PROJECT_LEAD, ADMIN).
-- **Roles**: All logged-in users.
+- **Authentication**: JWT Required (`Authorization: Bearer <token>`).
+- **Roles**: All authenticated users (`ADMIN`, `PROJECT_LEAD`, `MEMBER`, `STAKEHOLDER`).
 
 ## Request
 - **Body**:

@@ -4,7 +4,7 @@ Create a new Form Template.
 
 ## Details
 - **Description**: Defines a dynamic form structure (using JSON Schema) that can be used for project intakes or external submissions.
-- **Authentication**: JWT Required (ADMIN, PROJECT_LEAD).
+- **Authentication**: JWT Required (`Authorization: Bearer <token>`). **ROLE: ADMIN or PROJECT_LEAD**.
 - **Body**:
 ```json
 {

@@ -1,26 +1,29 @@
-# API Requirements for Advanced Visualizations
+# API Requirements for NexusFlow v2.0
 
-The following APIs are required to support the advanced Kanban and Gantt views in the NexusFlow dashboard.
+## Status: REVISED (2024-02-20)
+All previous requirements for Advanced Visualizations (v1.0) have been satisfied and merged into the main API Routes Index.
 
-## 1. User Management
-- **GET /users**: Returns a list of all users in the workspace (needed for User Filters in Kanban/Gantt).
-  - Response: `Array<{ id, name, email, avatarUrl, role }>`
+---
 
-## 2. Advanced Filtering for Projects/Tasks
-- **GET /projects/timeline**: A specialized endpoint for Gantt charts that returns project/story/task hierarchies with start/end dates.
-  - Parameters: `userIds[]` (Array of UUIDs), `status`, `includeSubTasks` (Boolean).
-  - Required for: Multi-user timeline rendering.
+## 🚀 New Requirements (v2.0)
 
-- **GET /tasks**: (Update) Ensure this endpoint supports filtering by `status` and `userIds[]` across the entire workspace for the global Tasks Kanban.
+### 1. User Presence & Activity
+- **GET /users/activity**: Returns a stream or list of recent activities for specific users.
+  - Required for: Dashboard "Recent Activity" feed.
+- **PATCH /users/me/profile**: Allow users to update their own avatar and display name (distinct from Supabase metadata).
 
-## 3. Task Conversations
-- **GET /tasks/:id/comments**: Returns an ordered list of comments for a specific task.
-  - Response: `Array<{ id, content, author { name, avatarUrl }, createdAt }>`
-- **POST /tasks/:id/comments**: To add a new comment to a task thread.
-  - Body: `{ content: string }`
+### 2. Manual Synchronization
+- **POST /auth/sync/manual**: A triggered version of the sync logic for cases where the Supabase webhook failed or was delayed.
+  - Required for: Onboarding troubleshooting.
 
-## 3. Stages & Workflow Metadata
-- **GET /admin/stages**: To fetch the dynamic column headers for Kanban boards if they differ by project type.
+### 3. Advanced Search
+- **GET /search/global**: A unified search endpoint that queries Projects, Stories, and Tasks by title/description.
+  - Required for: Command Palette / Global Search bar.
 
-> [!NOTE]
-> Until these are ready, the frontend will use mock patterns based on these proposed structures.
+### 4. Role-Based Access Control (RBAC) Fine-tuning
+- **GET /admin/permissions**: Returns the permission matrix for current user roles.
+  - Required for: Dynamic UI element visibility (e.g., hiding Delete button for non-admins).
+
+---
+> [!IMPORTANT]
+> Requirement v1.0 regarding Gantt/Kanban filtering is now considered CORE functionality.

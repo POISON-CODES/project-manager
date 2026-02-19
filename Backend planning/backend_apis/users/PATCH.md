@@ -4,7 +4,7 @@ Update a user's status.
 
 ## Details
 - **Description**: Allows an administrator to update a user's active status.
-- **Authentication**: JWT Required (ADMIN).
+- **Authentication**: JWT Required (`Authorization: Bearer <token>`). **ROLE: ADMIN ONLY**.
 - **Body**:
 ```json
 {
@@ -27,7 +27,7 @@ Update a user's role.
 
 ## Details
 - **Description**: Allows an administrator to change a user's permission level.
-- **Authentication**: JWT Required (ADMIN).
+- **Authentication**: JWT Required (`Authorization: Bearer <token>`). **ROLE: ADMIN ONLY**.
 - **Body**:
 ```json
 {

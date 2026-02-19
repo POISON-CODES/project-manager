@@ -4,7 +4,7 @@ Create a new automation rule.
 
 ## Details
 - **Description**: Configures a trigger-action rule (e.g., when a task is completed, send a webhook).
-- **Authentication**: JWT Required (ADMIN, PROJECT_LEAD).
+- **Authentication**: JWT Required (`Authorization: Bearer <token>`). **ROLE: ADMIN or PROJECT_LEAD**.
 - **Body**:
 ```json
 {

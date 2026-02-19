@@ -4,7 +4,7 @@ List all users in the workspace.
 
 ## Details
 - **Description**: Returns basic profile information for all registered users. Useful for Kanban/Gantt assignee filters.
-- **Authentication**: JWT Required.
+- **Authentication**: JWT Required (`Authorization: Bearer <token>`).
 
 ## Response
 - **Success (200 OK)**:
@@ -29,7 +29,7 @@ Get current authenticated user profile.
 
 ## Details
 - **Description**: Returns the full user object for the authenticated user.
-- **Authentication**: JWT Required.
+- **Authentication**: JWT Required (`Authorization: Bearer <token>`).
 
 ## Response
 - **Success (200 OK)**:

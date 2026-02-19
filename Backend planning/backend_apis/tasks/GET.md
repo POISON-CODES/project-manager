@@ -4,7 +4,7 @@ List all tasks.
 
 ## Details
 - **Description**: Returns all tasks across all stories/projects. Useful for global Kanban boards.
-- **Authentication**: JWT Restricted.
+- **Authentication**: JWT Required (`Authorization: Bearer <token>`).
 
 ## Response
 - **Success (200 OK)**:
