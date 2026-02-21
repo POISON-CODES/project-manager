@@ -26,7 +26,7 @@ export class UserStoriesController {
   constructor(
     private readonly userStoriesService: UserStoriesService,
     private readonly tasksService: TasksService,
-  ) { }
+  ) {}
 
   // ... (Other methods unchanged or already viewed)
 

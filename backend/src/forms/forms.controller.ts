@@ -32,7 +32,7 @@ class CreateFormDto implements z.infer<typeof CreateFormSchema> {
 @Controller('forms')
 @UseGuards(JwtAuthGuard)
 export class FormsController {
-  constructor(private readonly formsService: FormsService) { }
+  constructor(private readonly formsService: FormsService) {}
 
   /**
    * Create a new Form Template.

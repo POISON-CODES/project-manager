@@ -1,4 +1,13 @@
-import { Controller, Get, Patch, Body, Param, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Patch,
+  Body,
+  Param,
+  UseGuards,
+  Request,
+  Query,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../common/guards/auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -8,11 +17,11 @@ import { UserService } from './user.service';
 @Controller('users')
 @UseGuards(JwtAuthGuard)
 export class UserController {
-  constructor(private readonly userService: UserService) { }
+  constructor(private readonly userService: UserService) {}
 
   /**
    * Get the current authenticated user's profile.
-   * 
+   *
    * @param req - Request object containing the user set by SupabaseStrategy.
    * @returns The user object.
    */
@@ -24,7 +33,7 @@ export class UserController {
   /**
    * Get all users in the workspace.
    * Needed for user filters in Kanban and Gantt views.
-   * 
+   *
    * @returns Array of users.
    */
   @Get()
@@ -42,10 +51,7 @@ export class UserController {
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
   @Patch(':id/status')
-  async updateStatus(
-    @Param('id') id: string,
-    @Body('status') status: any,
-  ) {
+  async updateStatus(@Param('id') id: string, @Body('status') status: any) {
     const data = await this.userService.update(id, { status });
     return { success: true, data };
   }
@@ -56,11 +62,35 @@ export class UserController {
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
   @Patch(':id/role')
-  async updateRole(
-    @Param('id') id: string,
-    @Body('role') role: any,
-  ) {
+  async updateRole(@Param('id') id: string, @Body('role') role: any) {
     const data = await this.userService.update(id, { role });
+    return { success: true, data };
+  }
+
+  /**
+   * Get global activity feed (or filtered by user).
+   * Supports ?userId=<uuid> to filter.
+   */
+  @Get('activity')
+  async getActivity(@Request() req: any, @Query('userId') userId?: string) {
+    // If userId query param is present, filter by it. Otherwise global.
+    const activities = await this.userService.getActivities(userId, 50);
+    return { success: true, data: activities };
+  }
+
+  /**
+   * Update current user profile (Avatar, Name).
+   */
+  @Patch('me/profile')
+  async updateProfile(
+    @Request() req: any,
+    @Body('name') name: string,
+    @Body('avatarUrl') avatarUrl: string,
+  ) {
+    const data = await this.userService.update(req.user.id, {
+      name,
+      avatarUrl,
+    });
     return { success: true, data };
   }
 }

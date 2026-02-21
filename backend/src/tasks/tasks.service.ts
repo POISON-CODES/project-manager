@@ -10,7 +10,7 @@ export class TasksService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly workflowsService: WorkflowsService,
-  ) { }
+  ) {}
 
   /**
    * Create a new task.
@@ -30,7 +30,7 @@ export class TasksService {
 
   /**
    * Find all tasks (optionally filtered by status or assignees).
-   * 
+   *
    * @param status - Optional TaskStatus filter.
    * @param userIds - Optional array of user UUIDs for filtering.
    * @returns List of tasks.
@@ -39,7 +39,9 @@ export class TasksService {
     return this.prisma.task.findMany({
       where: {
         ...(status ? { status } : {}),
-        ...(userIds && userIds.length > 0 ? { assigneeId: { in: userIds } } : {}),
+        ...(userIds && userIds.length > 0
+          ? { assigneeId: { in: userIds } }
+          : {}),
       },
       include: {
         assignee: { select: { id: true, name: true, avatarUrl: true } },
@@ -202,7 +204,7 @@ export class TasksService {
 
   /**
    * Get all comments for a task.
-   * 
+   *
    * @param taskId - Task UUID.
    * @returns List of comments with author info.
    */
@@ -218,7 +220,7 @@ export class TasksService {
 
   /**
    * Add a comment to a task.
-   * 
+   *
    * @param taskId - Task UUID.
    * @param authorId - Authenticated User UUID.
    * @param content - Comment text.

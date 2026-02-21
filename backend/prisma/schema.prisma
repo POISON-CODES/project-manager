@@ -1,38 +1,183 @@
-// --------------------------------------------------------
-// DATASOURCE & GENERATOR
-// --------------------------------------------------------
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
-}
-
-// --------------------------------------------------------
-// IAM MODULE (Synced with Supabase Auth or Standalone)
-// --------------------------------------------------------
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  name      String   // Mandatory
-  phoneNumber String @unique
-  avatarUrl String?
-  role      UserRole   @default(MEMBER) // RBAC
-  status    UserStatus @default(PENDING) // Approval Workflow
-
-  // Relations
-  ownedProjects Project[] @relation("ProjectOwner")
-  stakeholderProjects Project[] @relation("ProjectStakeholder")
-  assignedTasks Task[]    @relation("TaskAssignee")
-  uploadedDocs  Document[]
-  comments      Comment[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                  String     @id @default(uuid())
+  email               String     @unique
+  name                String
+  phoneNumber         String?    @unique
+  avatarUrl           String?
+  role                UserRole   @default(MEMBER)
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  status              UserStatus @default(APPROVED)
+  comments            Comment[]
+  uploadedDocs        Document[]
+  ownedProjects       Project[]  @relation("ProjectOwner")
+  stakeholderProjects Project[]  @relation("ProjectStakeholder")
+  assignedTasks       Task[]     @relation("TaskAssignee")
+  activities          UserActivity[]
 
   @@map("users")
+}
+
+model Project {
+  id             String        @id @default(uuid())
+  name           String
+  description    String?
+  status         ProjectStatus @default(PLANNING)
+  ownerId        String?
+  formTemplateId String
+  formData       Json
+  currentStageId String?
+  startDate      DateTime?
+  endDate        DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  deletedAt      DateTime?
+  stakeholderId  String?
+  documents      Document[]
+  formTemplate   FormTemplate  @relation(fields: [formTemplateId], references: [id])
+  owner          User?         @relation("ProjectOwner", fields: [ownerId], references: [id])
+  stakeholder    User?         @relation("ProjectStakeholder", fields: [stakeholderId], references: [id])
+  stories        UserStory[]
+
+  @@index([ownerId])
+  @@index([status])
+  @@map("projects")
+}
+
+model Document {
+  id         String       @id @default(uuid())
+  name       String
+  url        String
+  type       DocumentType @default(GENERAL)
+  projectId  String
+  uploaderId String
+  createdAt  DateTime     @default(now())
+  project    Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  uploader   User         @relation(fields: [uploaderId], references: [id])
+
+  @@index([projectId])
+  @@map("documents")
+}
+
+model UserStory {
+  id          String      @id @default(uuid())
+  title       String
+  description String?
+  status      StoryStatus @default(BACKLOG)
+  projectId   String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  tasks       Task[]
+  project     Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("user_stories")
+}
+
+model Task {
+  id          String     @id @default(uuid())
+  title       String
+  description String?
+  status      TaskStatus @default(TODO)
+  priority    Priority   @default(MEDIUM)
+  dueDate     DateTime?
+  storyId     String
+  assigneeId  String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  comments    Comment[]
+  assignee    User?      @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  story       UserStory  @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  blockedBy   Task[]     @relation("TaskDependencies")
+  blocking    Task[]     @relation("TaskDependencies")
+
+  @@index([storyId])
+  @@index([assigneeId])
+  @@map("tasks")
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  content   String
+  taskId    String?
+  authorId  String
+  createdAt DateTime @default(now())
+  author    User     @relation(fields: [authorId], references: [id])
+  task      Task?    @relation(fields: [taskId], references: [id])
+
+  @@map("comments")
+}
+
+model FormTemplate {
+  id          String    @id @default(uuid())
+  name        String
+  version     Int       @default(1)
+  schema      Json
+  isActive    Boolean   @default(true)
+  description String?
+  projects    Project[]
+
+  @@map("form_templates")
+}
+
+model Workflow {
+  id            String           @id @default(uuid())
+  name          String
+  isActive      Boolean          @default(true)
+  description   String?
+  triggerType   String
+  triggerConfig Json?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  actions       WorkflowAction[]
+
+  @@map("workflows")
+}
+
+model WorkflowAction {
+  id         String   @id @default(uuid())
+  workflowId String
+  order      Int
+  type       String
+  config     Json
+  createdAt  DateTime @default(now())
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@map("workflow_actions")
+}
+
+model ActionLog {
+  id         String    @id @default(uuid())
+  actionId   String
+  status     LogStatus
+  details    Json?
+  executedAt DateTime  @default(now())
+
+  @@index([status])
+  @@map("action_logs")
+}
+
+model UserActivity {
+  id         String   @id @default(uuid())
+  userId     String
+  action     String
+  entityType String?
+  entityId   String?
+  entityName String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("user_activities")
 }
 
 enum UserRole {
@@ -48,195 +193,12 @@ enum UserStatus {
   REJECTED
 }
 
-// --------------------------------------------------------
-// PROJECT CORE MODULE
-// --------------------------------------------------------
-model Project {
-  id          String        @id @default(uuid())
-  name        String
-  description String?
-  status      ProjectStatus @default(PLANNING)
-  
-  // Ownership & Stakeholders
-  ownerId String? // Optional because it can be unassigned
-  owner   User?   @relation("ProjectOwner", fields: [ownerId], references: [id])
-  
-  stakeholderId String?
-  stakeholder   User?   @relation("ProjectStakeholder", fields: [stakeholderId], references: [id])
-
-  // Form Data (The content submitted via intake)
-  formTemplateId String
-  formTemplate   FormTemplate @relation(fields: [formTemplateId], references: [id])
-  formData       Json         // validated against template schema
-
-  // Active Stage Tracking (Workflow state)
-  currentStageId String? 
-  
-  // Hierarchy
-  stories   UserStory[]
-  documents Document[] 
-  
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime? // Soft Delete
-
-  @@index([ownerId])
-  @@index([status])
-  @@map("projects")
-}
-
-model Document {
-  id        String       @id @default(uuid())
-  name      String
-  url       String       // S3/Supabase Storage URL
-  type      DocumentType @default(GENERAL)
-  
-  projectId String
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  
-  uploaderId String
-  uploader   User   @relation(fields: [uploaderId], references: [id])
-
-  createdAt DateTime @default(now())
-  
-  @@index([projectId])
-  @@map("documents")
-}
-
 enum DocumentType {
   GENERAL
   REQ_DOC
-  HANDOVER_PACKAGE // Auto-generated later
+  HANDOVER_PACKAGE
 }
 
-model UserStory {
-  id          String      @id @default(uuid())
-  title       String
-  description String?
-  status      StoryStatus @default(BACKLOG)
-  
-  projectId String
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  
-  tasks Task[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("user_stories")
-}
-
-model Task {
-  id          String     @id @default(uuid())
-  title       String
-  description String?
-  status      TaskStatus @default(TODO)
-  priority    Priority   @default(MEDIUM)
-  dueDate     DateTime?
-
-  storyId String
-  story   UserStory @relation(fields: [storyId], references: [id], onDelete: Cascade)
-
-  // Assignments
-  assigneeId String?
-  assignee   User?   @relation("TaskAssignee", fields: [assigneeId], references: [id])
-
-  // Dependency System (Self-Referencing Many-to-Many)
-  blockedBy   Task[] @relation("TaskDependencies")
-  blocking    Task[] @relation("TaskDependencies")
-
-  comments Comment[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([storyId])
-  @@index([assigneeId])
-  @@map("tasks")
-}
-
-model Comment {
-  id        String   @id @default(uuid())
-  content   String
-  
-  taskId    String?
-  task      Task?    @relation(fields: [taskId], references: [id])
-  
-  authorId  String
-  author    User     @relation(fields: [authorId], references: [id])
-  
-  createdAt DateTime @default(now())
-  
-  @@map("comments")
-}
-
-// --------------------------------------------------------
-// INTAKE FORMS
-// --------------------------------------------------------
-model FormTemplate {
-  id        String   @id @default(uuid())
-  name      String
-  description String?
-  version   Int      @default(1)
-  schema    Json     // Zod schema definition for validation
-  isActive  Boolean  @default(true)
-  
-  projects  Project[]
-
-  @@map("form_templates")
-}
-
-// --------------------------------------------------------
-// WORKFLOW ENGINE (Automation)
-// --------------------------------------------------------
-model Workflow {
-  id          String   @id @default(uuid())
-  name        String
-  isActive    Boolean  @default(true)
-  description String?
-  
-  // Trigger Configuration
-  triggerType String // e.g., "TASK_COMPLETED", "PROJECT_CREATED"
-  triggerConfig Json? // Filtering rules (e.g., "only for Form A")
-
-  // Actions to execute
-  actions WorkflowAction[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("workflows")
-}
-
-model WorkflowAction {
-  id         String   @id @default(uuid())
-  workflowId String
-  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
-  
-  order      Int      // Execution sequence
-  type       String   // "HTTP_REQUEST", "EMAIL", "SLACK"
-  config     Json     // URL, Method, Body Template
-  
-  createdAt DateTime @default(now())
-
-  @@map("workflow_actions")
-}
-
-model ActionLog {
-  id        String   @id @default(uuid())
-  actionId  String
-  status    LogStatus // SUCCESS, FAILED, RETRYING
-  details   Json?     // Response body or Error trace
-  
-  executedAt DateTime @default(now())
-  
-  @@index([status])
-  @@map("action_logs")
-}
-
-// --------------------------------------------------------
-// ENUMS
-// --------------------------------------------------------
 enum ProjectStatus {
   PLANNING
   ACTIVE
@@ -257,7 +219,7 @@ enum TaskStatus {
   IN_PROGRESS
   REVIEW
   DONE
-  HALTED // Calculated state, but can be persisted for query speed
+  HALTED
 }
 
 enum Priority {

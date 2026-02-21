@@ -6,16 +6,16 @@ import { BullModule } from '@nestjs/bullmq';
 import { WorkflowsModule } from '../workflows/workflows.module';
 
 @Module({
-    imports: [
-        WorkflowsModule,
-        BullBoardModule.forRoot({
-            route: '/admin/queues',
-            adapter: ExpressAdapter,
-        }),
-        BullBoardModule.forFeature({
-            name: 'workflow-queue',
-            adapter: BullMQAdapter,
-        }),
-    ],
+  imports: [
+    WorkflowsModule,
+    BullBoardModule.forRoot({
+      route: '/admin/queues',
+      adapter: ExpressAdapter,
+    }),
+    BullBoardModule.forFeature({
+      name: 'workflow-queue',
+      adapter: BullMQAdapter,
+    }),
+  ],
 })
-export class BullBoardConfigModule { }
+export class BullBoardConfigModule {}

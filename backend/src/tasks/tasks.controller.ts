@@ -21,13 +21,13 @@ import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 @Controller('tasks')
 @UseGuards(JwtAuthGuard)
 export class TasksController {
-  constructor(private readonly tasksService: TasksService) { }
+  constructor(private readonly tasksService: TasksService) {}
 
   // Note: Creation of task is via User Stories Controller
 
   /**
    * Get all tasks (Kanban view data).
-   * 
+   *
    * @param status - Optional TaskStatus filter.
    * @param userIds - Optional comma-separated user UUIDs for filtering.
    * @returns List of tasks.
@@ -130,7 +130,7 @@ export class TasksController {
 
   /**
    * Get comments for a task.
-   * 
+   *
    * @param id - Task ID.
    * @returns List of comments.
    */
@@ -142,7 +142,7 @@ export class TasksController {
 
   /**
    * Add a comment to a task.
-   * 
+   *
    * @param id - Task ID.
    * @param body - Comment content.
    * @param req - Request containing user info.

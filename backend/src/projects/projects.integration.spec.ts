@@ -3,32 +3,30 @@ import { ProjectsService } from './projects.service';
 import { DatabaseModule } from '../database/database.module';
 import { PrismaService } from '../database/prisma.service';
 import { ConfigModule } from '@nestjs/config';
+import { WorkflowsModule } from '../workflows/workflows.module';
 
 describe('Projects (Integration)', () => {
-    let service: ProjectsService;
-    let prisma: PrismaService;
+  let service: ProjectsService;
+  let prisma: PrismaService;
 
-    beforeAll(async () => {
-        const module: TestingModule = await Test.createTestingModule({
-            imports: [
-                ConfigModule.forRoot(),
-                DatabaseModule,
-            ],
-            providers: [ProjectsService],
-        }).compile();
+  beforeAll(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      imports: [ConfigModule.forRoot(), DatabaseModule, WorkflowsModule],
+      providers: [ProjectsService],
+    }).compile();
 
-        service = module.get<ProjectsService>(ProjectsService);
-        prisma = module.get<PrismaService>(PrismaService);
-    });
+    service = module.get<ProjectsService>(ProjectsService);
+    prisma = module.get<PrismaService>(PrismaService);
+  });
 
-    it('should be defined', () => {
-        expect(service).toBeDefined();
-    });
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
 
-    // Example integration test that actually hits the DB (or a test DB)
-    // Usually, we'd use a dedicated test database here.
-    it('should list projects', async () => {
-        const projects = await service.findAll();
-        expect(Array.isArray(projects)).toBe(true);
-    });
+  // Example integration test that actually hits the DB (or a test DB)
+  // Usually, we'd use a dedicated test database here.
+  it('should list projects', async () => {
+    const projects = await service.findAll();
+    expect(Array.isArray(projects)).toBe(true);
+  });
 });

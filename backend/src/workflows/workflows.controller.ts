@@ -22,7 +22,7 @@ import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN, UserRole.PROJECT_LEAD)
 export class WorkflowsController {
-  constructor(private readonly workflowsService: WorkflowsService) { }
+  constructor(private readonly workflowsService: WorkflowsService) {}
 
   /**
    * Create a new workflow automation rule.

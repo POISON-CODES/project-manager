@@ -16,4 +16,4 @@ import { DatabaseModule } from '../database/database.module';
   providers: [WorkflowsService, WorkflowProcessor],
   exports: [WorkflowsService, BullModule],
 })
-export class WorkflowsModule { }
+export class WorkflowsModule {}

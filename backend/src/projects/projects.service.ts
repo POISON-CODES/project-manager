@@ -10,7 +10,7 @@ export class ProjectsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly workflowsService: WorkflowsService,
-  ) {}
+  ) { }
 
   /**
    * Create a new project from an intake form submission.
@@ -55,11 +55,36 @@ export class ProjectsService {
    * @returns List of all projects.
    */
   async findAll() {
-    return this.prisma.project.findMany({
+    const projects = await this.prisma.project.findMany({
+      where: { deletedAt: null },
       orderBy: { createdAt: 'desc' },
       include: {
-        owner: { select: { id: true, name: true, email: true } },
+        owner: { select: { id: true, name: true, email: true, avatarUrl: true } },
+        stories: {
+          include: {
+            tasks: {
+              select: { priority: true, status: true },
+            },
+          },
+        },
       },
+    });
+
+    return projects.map((p) => {
+      const allTasks = p.stories.flatMap((s) => s.tasks);
+      const isHalted = allTasks.some((t) => t.status === 'HALTED') || p.status === 'ON_HOLD';
+
+      return {
+        ...p,
+        isHalted,
+        taskStats: {
+          total: allTasks.length,
+          low: allTasks.filter((t) => t.priority === 'LOW').length,
+          medium: allTasks.filter((t) => t.priority === 'MEDIUM').length,
+          high: allTasks.filter((t) => t.priority === 'HIGH').length,
+          critical: allTasks.filter((t) => t.priority === 'CRITICAL').length,
+        },
+      };
     });
   }
 
@@ -98,10 +123,25 @@ export class ProjectsService {
         },
       },
     });
+
     if (!project) {
       throw new NotFoundException(`Project ${id} not found`);
     }
-    return project;
+
+    const allTasks = project.stories.flatMap((s) => s.tasks);
+    const isHalted = allTasks.some((t) => t.status === 'HALTED') || project.status === 'ON_HOLD';
+
+    return {
+      ...project,
+      isHalted,
+      taskStats: {
+        total: allTasks.length,
+        low: allTasks.filter((t) => t.priority === 'LOW').length,
+        medium: allTasks.filter((t) => t.priority === 'MEDIUM').length,
+        high: allTasks.filter((t) => t.priority === 'HIGH').length,
+        critical: allTasks.filter((t) => t.priority === 'CRITICAL').length,
+      },
+    };
   }
 
   /**
@@ -141,7 +181,7 @@ export class ProjectsService {
 
   /**
    * Get project hierarchy with timeline data for Gantt charts.
-   * 
+   *
    * @param userIds - Optional array of user UUIDs to filter tasks.
    * @returns Hierarchical project data with stories and tasks.
    */
@@ -154,25 +194,28 @@ export class ProjectsService {
         stories: {
           include: {
             tasks: {
-              where: userIds && userIds.length > 0 ? {
-                assigneeId: { in: userIds }
-              } : {},
+              where:
+                userIds && userIds.length > 0
+                  ? {
+                    assigneeId: { in: userIds },
+                  }
+                  : {},
               include: {
                 assignee: { select: { id: true, name: true, avatarUrl: true } },
               },
-              orderBy: { createdAt: 'asc' }
-            }
+              orderBy: { createdAt: 'asc' },
+            },
           },
-          orderBy: { createdAt: 'asc' }
+          orderBy: { createdAt: 'asc' },
         },
-        owner: { select: { id: true, name: true, avatarUrl: true } }
-      }
+        owner: { select: { id: true, name: true, avatarUrl: true } },
+      },
     });
   }
 
   /**
    * Update project details (Basic info).
-   * 
+   *
    * @param id - Project UUID.
    * @param updateProjectDto - Update data.
    * @returns The updated project.
@@ -186,7 +229,7 @@ export class ProjectsService {
 
   /**
    * Remove a project (Soft delete).
-   * 
+   *
    * @param id - Project UUID.
    * @returns The deleted project.
    */

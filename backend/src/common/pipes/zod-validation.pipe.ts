@@ -6,12 +6,12 @@ import {
 import { ZodError, ZodSchema } from 'zod';
 
 export class ZodValidationPipe implements PipeTransform {
-  constructor(private schema: ZodSchema) { }
+  constructor(private schema: ZodSchema) {}
 
   /**
    * Validates the input value against the provided Zod schema.
    * Only performs validation if the metadata type is 'body'.
-   * 
+   *
    * @param value - The data to validate.
    * @param metadata - Metadata about the parameter being validated.
    * @returns The parsed and validated value.

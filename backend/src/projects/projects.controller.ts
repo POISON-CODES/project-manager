@@ -31,7 +31,7 @@ export class ProjectsController {
   constructor(
     private readonly projectsService: ProjectsService,
     private readonly userStoriesService: UserStoriesService,
-  ) { }
+  ) {}
 
   /**
    * Create a new project.
@@ -79,7 +79,7 @@ export class ProjectsController {
 
   /**
    * Get project timeline hierarchy for Gantt views.
-   * 
+   *
    * @param userIds - Optional comma-separated user UUIDs for filtering.
    * @returns Hierarchical project-story-task data.
    */

@@ -14,7 +14,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
   /**
    * Catches all unhandled exceptions and formats them into a standard JSON response.
-   * 
+   *
    * @param exception - The caught exception.
    * @param host - Arguments host for switching to HTTP context.
    */

@@ -5,11 +5,11 @@ import { ROLES_KEY } from '../decorators/roles.decorator';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(private reflector: Reflector) { }
+  constructor(private reflector: Reflector) {}
 
   /**
    * Checks if the authenticated user has the required roles defined on the route.
-   * 
+   *
    * @param context - Execution context containing the request and user.
    * @returns Boolean indicating whether the user possesses a required role.
    */
