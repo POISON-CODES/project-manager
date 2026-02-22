@@ -5,6 +5,10 @@ export const CreateTaskSchema = z.object({
   description: z.string().optional(),
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']).default('MEDIUM'),
   dueDate: z.string().datetime().optional(), // ISO date string
+  estimatedMinutes: z.number().min(0).default(0),
+  scheduledStart: z.string().datetime().nullable().optional(),
+  scheduledEnd: z.string().datetime().nullable().optional(),
+  assigneeId: z.string().uuid().optional(),
 });
 
 export class CreateTaskDto implements z.infer<typeof CreateTaskSchema> {
@@ -12,4 +16,8 @@ export class CreateTaskDto implements z.infer<typeof CreateTaskSchema> {
   description?: string;
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   dueDate?: string;
+  estimatedMinutes: number;
+  scheduledStart?: string | null;
+  scheduledEnd?: string | null;
+  assigneeId?: string;
 }

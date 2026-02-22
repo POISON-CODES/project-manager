@@ -135,19 +135,62 @@ export class AuthService {
         avatarUrl?: string;
         phone?: string;
     }) {
-        this.logger.log(`Performing manual sync for user: ${userData.id}`);
+        this.logger.log(`Performing manual sync for user: ${userData.id} (${userData.email})`);
 
-        return (this.prisma.user as any).upsert({
-            where: { id: userData.id },
-            update: {
-                email: userData.email,
-                name: userData.name || userData.email.split('@')[0],
-                phoneNumber: userData.phone || null,
-                avatarUrl: userData.avatarUrl || null,
-                status: 'APPROVED', // Ensure user is approved on successful login/sync
-                updatedAt: new Date(),
-            },
-            create: {
+        // 1. Check if user with this ID already exists
+        const existingById = await this.prisma.user.findUnique({
+            where: { id: userData.id }
+        });
+
+        if (existingById) {
+            this.logger.log(`Updating existing user by ID: ${userData.id}`);
+            return this.prisma.user.update({
+                where: { id: userData.id },
+                data: {
+                    email: userData.email,
+                    name: userData.name || existingById.name,
+                    phoneNumber: userData.phone || existingById.phoneNumber,
+                    avatarUrl: userData.avatarUrl || existingById.avatarUrl,
+                    status: 'APPROVED',
+                    updatedAt: new Date(),
+                },
+            });
+        }
+
+        // 2. Check if a user with this email exists but with a different ID (Seeded user case)
+        const existingByEmail = await this.prisma.user.findUnique({
+            where: { email: userData.email }
+        });
+
+        if (existingByEmail) {
+            this.logger.log(`Found seeded user with email ${userData.email}. Migrating to Supabase ID ${userData.id}`);
+
+            // Use transaction to ensure data integrity during migration
+            return this.prisma.$transaction(async (tx) => {
+                // We must delete the old record because we can't update the primary key ID directly in Prisma easily
+                // and we want the new record to have the exact Supabase ID for future lookups.
+                const { id, ...oldData } = existingByEmail;
+
+                await tx.user.delete({ where: { id: existingByEmail.id } });
+
+                return tx.user.create({
+                    data: {
+                        ...oldData,
+                        id: userData.id,
+                        name: userData.name || oldData.name,
+                        phoneNumber: userData.phone || oldData.phoneNumber || userData.phone,
+                        avatarUrl: userData.avatarUrl || oldData.avatarUrl,
+                        status: 'APPROVED',
+                        updatedAt: new Date(),
+                    },
+                });
+            });
+        }
+
+        // 3. Brand new user (never seeded, never registered)
+        this.logger.log(`Creating brand new user record for ID: ${userData.id}`);
+        return this.prisma.user.create({
+            data: {
                 id: userData.id,
                 email: userData.email,
                 name: userData.name || userData.email.split('@')[0],

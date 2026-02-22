@@ -4,7 +4,7 @@ import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class FormsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   /**
    * Create a new form template in the database.
@@ -62,5 +62,20 @@ export class FormsService {
       );
     }
     return form;
+  }
+
+  /**
+   * Update an existing form template.
+   *
+   * @param id - The UUID of the form template to update.
+   * @param data - The update data.
+   * @returns The updated form template.
+   */
+  async update(id: string, data: Prisma.FormTemplateUpdateInput) {
+    const form = await this.findOne(id);
+    return this.prisma.formTemplate.update({
+      where: { id: form.id },
+      data,
+    });
   }
 }

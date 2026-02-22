@@ -3,7 +3,7 @@ import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { PrismaService } from '../database/prisma.service';
 import { WorkflowsService } from '../workflows/workflows.service';
-import { ProjectStatus } from '@prisma/client';
+
 
 @Injectable()
 export class ProjectsService {
@@ -18,32 +18,58 @@ export class ProjectsService {
    * @param createProjectDto - Data for creating the project.
    * @returns The newly created project.
    */
-  async create(createProjectDto: CreateProjectDto) {
-    // 1. Verify Template Exists
-    const template = await this.prisma.formTemplate.findUnique({
-      where: { id: createProjectDto.formTemplateId },
+  async create(createProjectDto: CreateProjectDto, stakeholderId: string) {
+    // 1. Verify Template Exists (Using findFirst/findUnique based on semantic ID or UUID)
+    const template = await this.prisma.formTemplate.findFirst({
+      where: {
+        OR: [
+          { id: createProjectDto.formTemplateId },
+          { id: 'generic-intake-form' },
+        ],
+      },
     });
+
     if (!template) {
       throw new NotFoundException(
         `FormTemplate ${createProjectDto.formTemplateId} not found`,
       );
     }
 
-    // 2. Create Project
+    // 2. Resolve 'Project Submitted' Stage
+    let stage = await this.prisma.projectStage.findFirst({
+      where: { name: 'Project Submitted' },
+    });
+
+    if (!stage) {
+      // Create fallback stage if it doesn't exist
+      stage = await this.prisma.projectStage.create({
+        data: {
+          name: 'Project Submitted',
+          color: 'blue',
+          order: 0,
+        },
+      });
+    }
+
+    // 3. Create Project
     const project = await this.prisma.project.create({
       data: {
         name: createProjectDto.name,
         description: createProjectDto.description,
-        formTemplateId: createProjectDto.formTemplateId,
+        formTemplateId: template.id,
         formData: createProjectDto.formData,
-        status: 'PLANNING', // Default
+        currentStageId: stage.id,
+        stakeholderId: stakeholderId,
+        endDate: createProjectDto.deadline ? new Date(createProjectDto.deadline) : null,
+        startDate: null,
       },
       include: {
-        formTemplate: { select: { name: true } }, // Include template name for display
+        currentStage: { select: { name: true, color: true } },
+        stakeholder: { select: { id: true, name: true, email: true } },
       },
     });
 
-    // 3. Trigger Workflow
+    // 4. Trigger Workflow
     await this.workflowsService.trigger('PROJECT_CREATED', project);
 
     return project;
@@ -54,9 +80,14 @@ export class ProjectsService {
    *
    * @returns List of all projects.
    */
-  async findAll() {
+  async findAll(formTemplateId?: string) {
+    const where: any = { deletedAt: null };
+    if (formTemplateId) {
+      where.formTemplateId = formTemplateId;
+    }
+
     const projects = await this.prisma.project.findMany({
-      where: { deletedAt: null },
+      where,
       orderBy: { createdAt: 'desc' },
       include: {
         owner: { select: { id: true, name: true, email: true, avatarUrl: true } },
@@ -72,17 +103,17 @@ export class ProjectsService {
 
     return projects.map((p) => {
       const allTasks = p.stories.flatMap((s) => s.tasks);
-      const isHalted = allTasks.some((t) => t.status === 'HALTED') || p.status === 'ON_HOLD';
+      const isHalted = allTasks.some((t: any) => t.status === 'HALTED');
 
       return {
         ...p,
         isHalted,
         taskStats: {
           total: allTasks.length,
-          low: allTasks.filter((t) => t.priority === 'LOW').length,
-          medium: allTasks.filter((t) => t.priority === 'MEDIUM').length,
-          high: allTasks.filter((t) => t.priority === 'HIGH').length,
-          critical: allTasks.filter((t) => t.priority === 'CRITICAL').length,
+          low: allTasks.filter((t: any) => t.priority === 'LOW').length,
+          medium: allTasks.filter((t: any) => t.priority === 'MEDIUM').length,
+          high: allTasks.filter((t: any) => t.priority === 'HIGH').length,
+          critical: allTasks.filter((t: any) => t.priority === 'CRITICAL').length,
         },
       };
     });
@@ -104,7 +135,7 @@ export class ProjectsService {
         stakeholder: {
           select: { id: true, name: true, email: true, avatarUrl: true },
         },
-        formTemplate: { select: { id: true, name: true } },
+        formTemplate: { select: { id: true, title: true, schema: true } as any },
         stories: {
           include: {
             tasks: {
@@ -128,18 +159,19 @@ export class ProjectsService {
       throw new NotFoundException(`Project ${id} not found`);
     }
 
-    const allTasks = project.stories.flatMap((s) => s.tasks);
-    const isHalted = allTasks.some((t) => t.status === 'HALTED') || project.status === 'ON_HOLD';
+    const p = project as any;
+    const allTasks = (p.stories || []).flatMap((s: any) => s.tasks || []);
+    const isHalted = allTasks.some((t: any) => t.status === 'HALTED');
 
     return {
       ...project,
       isHalted,
       taskStats: {
         total: allTasks.length,
-        low: allTasks.filter((t) => t.priority === 'LOW').length,
-        medium: allTasks.filter((t) => t.priority === 'MEDIUM').length,
-        high: allTasks.filter((t) => t.priority === 'HIGH').length,
-        critical: allTasks.filter((t) => t.priority === 'CRITICAL').length,
+        low: allTasks.filter((t: any) => t.priority === 'LOW').length,
+        medium: allTasks.filter((t: any) => t.priority === 'MEDIUM').length,
+        high: allTasks.filter((t: any) => t.priority === 'HIGH').length,
+        critical: allTasks.filter((t: any) => t.priority === 'CRITICAL').length,
       },
     };
   }
@@ -160,24 +192,26 @@ export class ProjectsService {
     }
     return this.prisma.project.update({
       where: { id },
-      data: { ownerId: userId, status: 'ACTIVE' }, // Auto-activate on claim? Maybe. Let's keep status manual for now or ACTIVE.
+      data: { ownerId: userId },
       include: { owner: { select: { id: true, name: true } } },
     });
   }
 
   /**
-   * Update the project stage/status.
+   * Update the project stage (currentStageId).
    *
    * @param id - Project UUID.
-   * @param status - New ProjectStatus.
+   * @param stageId - New ProjectStage UUID.
    * @returns The updated project.
    */
-  async updateStatus(id: string, status: ProjectStatus) {
+  async updateStage(id: string, stageId: string) {
     return this.prisma.project.update({
       where: { id },
-      data: { status },
+      data: { currentStageId: stageId },
     });
   }
+
+
 
   /**
    * Get project hierarchy with timeline data for Gantt charts.

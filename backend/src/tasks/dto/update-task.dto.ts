@@ -15,4 +15,7 @@ export class UpdateTaskDto implements z.infer<typeof UpdateTaskSchema> {
   dueDate?: string;
   status?: 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'DONE' | 'HALTED';
   assigneeId?: string | null;
+  estimatedMinutes?: number;
+  scheduledStart?: string | null;
+  scheduledEnd?: string | null;
 }

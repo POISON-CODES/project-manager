@@ -17,6 +17,8 @@ import { BullBoardConfigModule } from './bull-board/bull-board.module';
 import { BullModule } from '@nestjs/bullmq';
 import { ConfigService } from '@nestjs/config';
 import { SearchModule } from './search/search.module';
+import { CalendarModule } from './calendar/calendar.module';
+import { StagesModule } from './stages/stages.module';
 
 @Module({
   imports: [
@@ -42,6 +44,8 @@ import { SearchModule } from './search/search.module';
     WorkflowsModule,
     SearchModule,
     AdminModule,
+    CalendarModule,
+    StagesModule,
     BullBoardConfigModule,
     BullModule.forRootAsync({
       inject: [ConfigService],
@@ -56,4 +60,4 @@ import { SearchModule } from './search/search.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }

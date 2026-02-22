@@ -10,7 +10,19 @@ export class TasksService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly workflowsService: WorkflowsService,
-  ) {}
+  ) { }
+
+  /**
+   * Calculate buffer and total minutes (15% rule).
+   */
+  private calculateScheduling(estimatedMinutes: number) {
+    const bufferMinutes = Math.ceil(estimatedMinutes * 0.15);
+    return {
+      estimatedMinutes,
+      bufferMinutes,
+      totalMinutes: estimatedMinutes + bufferMinutes,
+    };
+  }
 
   /**
    * Create a new task.
@@ -20,9 +32,12 @@ export class TasksService {
    * @returns Created task.
    */
   async create(storyId: string, createTaskDto: CreateTaskDto) {
+    const schedulingData = this.calculateScheduling(createTaskDto.estimatedMinutes || 0);
+
     return this.prisma.task.create({
       data: {
         ...createTaskDto,
+        ...schedulingData,
         storyId,
       },
     });
@@ -46,7 +61,7 @@ export class TasksService {
       include: {
         assignee: { select: { id: true, name: true, avatarUrl: true } },
         blockedBy: { select: { id: true, title: true, status: true } },
-      },
+      } as any,
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -65,7 +80,7 @@ export class TasksService {
         blockedBy: { select: { id: true, title: true, status: true } },
         blocking: { select: { id: true, title: true, status: true } },
         comments: true,
-      },
+      } as any,
     });
     if (!task) throw new NotFoundException(`Task ${id} not found`);
     return task;
@@ -81,9 +96,16 @@ export class TasksService {
   async update(id: string, updateTaskDto: UpdateTaskDto) {
     const originalTask = await this.findOne(id);
 
+    const data: any = { ...updateTaskDto };
+
+    if (updateTaskDto.estimatedMinutes !== undefined) {
+      const schedulingData = this.calculateScheduling(updateTaskDto.estimatedMinutes);
+      Object.assign(data, schedulingData);
+    }
+
     const task = await this.prisma.task.update({
       where: { id },
-      data: updateTaskDto,
+      data,
     });
 
     // If status changed, recalculate tasks blocked by this one
@@ -113,7 +135,7 @@ export class TasksService {
       where: { id },
       data: {
         blockedBy: { connect: { id: blockedByTaskId } },
-      },
+      } as any,
     });
 
     return this.updateHaltedStatus(id);
@@ -131,7 +153,7 @@ export class TasksService {
       where: { id },
       data: {
         blockedBy: { disconnect: { id: blockedByTaskId } },
-      },
+      } as any,
     });
 
     return this.updateHaltedStatus(id);
@@ -146,12 +168,13 @@ export class TasksService {
   async updateHaltedStatus(id: string) {
     const task = await this.prisma.task.findUnique({
       where: { id },
-      include: { blockedBy: { select: { status: true } } },
+      include: { blockedBy: { select: { status: true } } } as any,
     });
 
     if (!task) return null;
 
-    const isBlocked = task.blockedBy.some((dep) => dep.status !== 'DONE');
+    const t = task as any;
+    const isBlocked = (t.blockedBy || []).some((dep: any) => dep.status !== 'DONE');
 
     // Logic: If blocked, status must be HALTED.
     // If not blocked and was HALTED, move to TODO.
@@ -180,7 +203,7 @@ export class TasksService {
   private async recalculateBlockedTasks(taskId: string) {
     const task = await this.prisma.task.findUnique({
       where: { id: taskId },
-      include: { blocking: { select: { id: true } } },
+      include: { blocking: { select: { id: true } } } as any,
     });
 
     if (!task) return;

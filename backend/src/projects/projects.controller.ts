@@ -31,7 +31,7 @@ export class ProjectsController {
   constructor(
     private readonly projectsService: ProjectsService,
     private readonly userStoriesService: UserStoriesService,
-  ) {}
+  ) { }
 
   /**
    * Create a new project.
@@ -41,8 +41,14 @@ export class ProjectsController {
    */
   @Post()
   @UsePipes(new ZodValidationPipe(CreateProjectSchema))
-  async create(@Body() createProjectDto: CreateProjectDto) {
-    const data = await this.projectsService.create(createProjectDto);
+  async create(
+    @Body() createProjectDto: CreateProjectDto,
+    @Req() req: { user: { id: string } },
+  ) {
+    const data = await this.projectsService.create(
+      createProjectDto,
+      req.user.id,
+    );
     return {
       success: true,
       data,
@@ -69,8 +75,8 @@ export class ProjectsController {
   }
 
   @Get()
-  async findAll() {
-    const data = await this.projectsService.findAll();
+  async findAll(@Query('formTemplateId') formTemplateId?: string) {
+    const data = await this.projectsService.findAll(formTemplateId);
     return {
       success: true,
       data,
@@ -134,9 +140,8 @@ export class ProjectsController {
    * @returns Updated project.
    */
   @Patch(':id/stage')
-  async updateStage(@Param('id') id: string, @Body('stage') stage: string) {
-    // Validate stage against enum if needed, or rely on Prisma throwing
-    const data = await this.projectsService.updateStatus(id, stage as any);
+  async updateStage(@Param('id') id: string, @Body('stageId') stageId: string) {
+    const data = await this.projectsService.updateStage(id, stageId);
     return { success: true, data };
   }
 
@@ -154,7 +159,11 @@ export class ProjectsController {
     @Param('id') id: string,
     @Body() updateProjectDto: UpdateProjectDto,
   ) {
-    return this.projectsService.update(id, updateProjectDto);
+    const data = await this.projectsService.update(id, updateProjectDto);
+    return {
+      success: true,
+      data,
+    };
   }
 
   /**

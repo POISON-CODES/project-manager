@@ -1,5 +1,4 @@
-import { PrismaClient, UserRole, UserStatus, ProjectStatus, TaskStatus, Priority } from '@prisma/client';
-import { v4 as uuidv4 } from 'uuid';
+import { PrismaClient, UserRole, UserStatus, TaskStatus, Priority, StoryStatus } from '@prisma/client';
 import { createClient } from '@supabase/supabase-js';
 import * as dotenv from 'dotenv';
 
@@ -7,263 +6,252 @@ dotenv.config();
 
 const prisma = new PrismaClient();
 
-// Supabase Admin client (requires Service Role Key)
+// Optional: Supabase client for cleaning up auth users if needed
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-const supabase = supabaseUrl && supabaseServiceRoleKey
-    ? createClient(supabaseUrl, supabaseServiceRoleKey, {
-        auth: {
-            autoRefreshToken: false,
-            persistSession: false
-        }
-    })
-    : null;
-
-async function createSeededUser(params: {
-    email: string;
-    name: string;
-    role: UserRole;
-    avatarUrl: string;
-    phoneNumber: string;
-}) {
-    let userId = uuidv4();
-
-    if (supabase) {
-        console.log(`📡 Creating ${params.email} in Supabase Auth...`);
-        const { data, error } = await supabase.auth.admin.createUser({
-            email: params.email,
-            password: 'password', // Default password for all seed users
-            email_confirm: true,
-            user_metadata: {
-                name: params.name,
-                role: params.role
-            }
-        });
-
-        if (error) {
-            if (error.message.includes('already registered')) {
-                console.log(`ℹ️ User ${params.email} already exists in Supabase. Attempting to match IDs...`);
-                // Try to find the user to get their ID
-                const { data: listData } = (await supabase.auth.admin.listUsers()) as any;
-                const existingUser = (listData?.users || []).find((u: any) => u.email === params.email);
-                if (existingUser) userId = existingUser.id;
-            } else {
-                console.warn(`⚠️ Error creating user in Supabase: ${error.message}`);
-            }
-        } else if (data.user) {
-            userId = data.user.id;
-            console.log(`✅ ${params.email} created in Supabase with ID: ${userId}`);
-        }
-    } else {
-        console.warn(`⚠️ SUPABASE_SERVICE_ROLE_KEY not found. Creating ${params.email} with local UUID. (Login won't work)`);
-    }
-
-    return await prisma.user.upsert({
-        where: { email: params.email },
-        update: {
-            id: userId, // Align ID with Supabase if possible
-            role: params.role,
-            status: UserStatus.APPROVED,
-        },
-        create: {
-            id: userId,
-            email: params.email,
-            name: params.name,
-            phoneNumber: params.phoneNumber,
-            role: params.role,
-            status: UserStatus.APPROVED,
-            avatarUrl: params.avatarUrl,
-        },
-    });
-}
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabase = (supabaseUrl && supabaseKey) ? createClient(supabaseUrl, supabaseKey) : null;
 
 async function main() {
     console.log('🌱 Starting seed...');
 
+    // 1. Clean up existing data (in reverse order of dependencies)
+    await prisma.comment.deleteMany();
+    await prisma.task.deleteMany();
+    await prisma.userStory.deleteMany();
+    await prisma.workflow.deleteMany();
+    await prisma.calendarEvent.deleteMany();
+    await prisma.project.deleteMany();
+    await prisma.projectStage.deleteMany();
+    await prisma.formTemplate.deleteMany();
+    await prisma.userActivity.deleteMany();
+    await prisma.user.deleteMany();
+
+    console.log('🧹 Cleaned up existing data');
+
     // 2. Create Users
-    const admin = await createSeededUser({
-        email: 'admin@nexa.com',
-        name: 'Admin User',
-        phoneNumber: '1234567890',
-        role: UserRole.ADMIN,
-        avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin',
-    });
+    const users = [
+        {
+            email: 'admin@nexa.com',
+            name: 'Alex Rivera',
+            role: UserRole.ADMIN,
+            phoneNumber: '1234567890',
+            status: UserStatus.APPROVED,
+            avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alex',
+        },
+        {
+            email: 'lead@nexa.com',
+            name: 'Sarah Chen',
+            role: UserRole.PROJECT_LEAD,
+            phoneNumber: '1234567891',
+            status: UserStatus.APPROVED,
+            avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah',
+        },
+        {
+            email: 'stakeholder@clients.com',
+            name: 'Marcus Thorne',
+            role: UserRole.STAKEHOLDER,
+            phoneNumber: '1234567892',
+            status: UserStatus.APPROVED,
+            avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Marcus',
+        },
+        {
+            email: 'dev1@nexa.com',
+            name: 'Jordan Smith',
+            role: UserRole.MEMBER,
+            phoneNumber: '1234567893',
+            status: UserStatus.APPROVED,
+            avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jordan',
+        }
+    ];
 
-    const lead = await createSeededUser({
-        email: 'lead@nexa.com',
-        name: 'Project Lead',
-        phoneNumber: '1234567891',
-        role: UserRole.PROJECT_LEAD,
-        avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=lead',
-    });
-
-    const member = await createSeededUser({
-        email: 'member@nexa.com',
-        name: 'Team Member',
-        phoneNumber: '1234567892',
-        role: UserRole.MEMBER,
-        avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=member',
-    });
-
-    const stakeholder = await createSeededUser({
-        email: 'stakeholder@clients.com',
-        name: 'Client Stakeholder',
-        phoneNumber: '1234567893',
-        role: UserRole.STAKEHOLDER,
-        avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=stakeholder',
-    });
+    const seededUsers = [];
+    for (const u of users) {
+        const user = await prisma.user.create({ data: u });
+        seededUsers.push(user);
+    }
 
     console.log('✅ Users seeded');
+
+    const admin = seededUsers[0];
+    const lead = seededUsers[1];
+    const stakeholder = seededUsers[2];
+    const dev = seededUsers[3];
 
     // 3. Create Form Template
     const formTemplate = await prisma.formTemplate.create({
         data: {
-            name: 'Standard Project Intake',
-            description: 'Default intake form for new client projects',
-            schema: {
-                type: 'object',
-                properties: {
-                    clientName: { type: 'string', title: 'Client Name' },
-                    budget: { type: 'number', title: 'Budget (USD)' },
-                    deadline: { type: 'string', format: 'date', title: 'Requested Deadline' },
-                },
-                required: ['clientName', 'budget'],
-            },
+            title: 'Technical Infrastructure Intake',
+            description: 'Standard protocol for requesting new technical infrastructure or system modifications.',
+            version: '1.0.0',
             isActive: true,
-        },
+            schema: {
+                sections: [
+                    {
+                        title: 'General Information',
+                        fields: [
+                            { name: 'projectName', label: 'Project Name', type: 'text', required: true },
+                            { name: 'priority', label: 'Requested Priority', type: 'select', options: ['Low', 'Medium', 'High', 'Critical'] }
+                        ]
+                    },
+                    {
+                        title: 'Technical Scope',
+                        fields: [
+                            { name: 'budget', label: 'Estimated Budget ($)', type: 'number' },
+                            { name: 'description', label: 'Detailed Description', type: 'textarea' }
+                        ]
+                    }
+                ]
+            }
+        } as any
     });
 
-    console.log('✅ Form Template seeded');
+    await prisma.formTemplate.create({
+        data: {
+            id: 'generic-intake-form',
+            title: 'Generic Project Intake',
+            description: 'Strategic intake protocol for cross-departmental initiatives.',
+            version: '1.0.0',
+            isActive: true,
+            schema: {}
+        } as any
+    });
+
+    console.log('✅ Form Templates seeded');
+
+    // 3.5 Create Project Stages
+    const stagesData = [
+        { name: 'Project Submitted', color: 'blue', order: 0, description: 'Default status for new form submissions.', icon: 'Clock' },
+        { name: 'Feasibility Accepted', color: 'emerald', order: 1, description: 'Project has cleared technical and business viability checks.', icon: 'CheckCircle2' },
+        { name: 'Feasibility Rejected', color: 'rose', order: 2, description: 'Project does not meet requirement criteria.', icon: 'AlertCircle' },
+        { name: 'In Queue', color: 'orange', order: 3, description: 'Scheduled for developmental kickoff.', icon: 'Layers' },
+        { name: 'Triage ongoing', color: 'indigo', order: 4, description: 'Mission-critical triage and requirement mapping in progress.', icon: 'Activity' },
+        { name: 'Ongoing', color: 'blue', order: 5, description: 'Active development phase.', icon: 'PlayCircle' },
+        { name: 'Halted for Stakeholder', color: 'amber', order: 6, description: 'Awaiting stakeholder input/approval.', icon: 'PauseCircle' },
+        { name: 'Halted for Tech', color: 'amber', order: 7, description: 'Blocked by technical constraints or debt.', icon: 'PauseCircle' },
+        { name: 'Completed, UAT Ongoing', color: 'emerald', order: 8, description: 'Built and undergoing user acceptance testing.', icon: 'History' },
+        { name: 'Input Changes Ongoing', color: 'indigo', order: 9, description: 'Refining features based on feedback.', icon: 'Edit3' },
+        { name: 'Handover Complete', color: 'green', order: 10, description: 'Final delivery confirmed.', icon: 'ShieldCheck' },
+        { name: 'Cancelled', color: 'slate', order: 11, description: 'Project terminated.', icon: 'Trash2' },
+    ];
+
+    const stages = [];
+    for (const stageData of stagesData) {
+        const stage = await prisma.projectStage.create({ data: stageData });
+        stages.push(stage);
+    }
+
+    console.log('✅ Project Stages seeded');
 
     // 4. Create Project
     const project = await prisma.project.create({
         data: {
-            name: 'Website Redesign',
-            description: 'Complete overhaul of the corporate website.',
-            status: ProjectStatus.ACTIVE,
+            name: 'Project Phoenix: Infrastructure Modernization',
+            description: 'Migration of legacy microservices to a serverless architectural protocol with automated CI/CD pipelines.',
             ownerId: lead.id,
             stakeholderId: stakeholder.id,
             formTemplateId: formTemplate.id,
+            currentStageId: stages[0].id,
             startDate: new Date('2024-03-01'),
             endDate: new Date('2024-08-31'),
             formData: {
-                clientName: 'Acme Corp',
+                projectName: 'Project Phoenix',
+                priority: 'High',
                 budget: 50000,
-                deadline: '2024-12-31',
-            },
-        },
+                description: 'Full migration to Cloud Native architecture.',
+            }
+        }
     });
 
     console.log('✅ Project seeded');
 
     // 5. Create User Stories
-    const story1 = await prisma.userStory.create({
-        data: {
-            title: 'Setup & Infrastructure',
-            description: 'Initialize repo, CI/CD, and basic hosting.',
-            status: 'IN_PROGRESS',
+    const stories = [
+        {
+            title: 'Cloud Environment Setup',
+            description: 'Configure VPCs, Subnets, and IAM protocols for the new production cluster.',
             projectId: project.id,
+            status: StoryStatus.IN_PROGRESS,
         },
-    });
+        {
+            title: 'Data Migration Strategy',
+            description: 'Architecting zero-downtime migration protocol for the core customer database.',
+            projectId: project.id,
+            status: StoryStatus.BACKLOG,
+        }
+    ];
 
-    const story2 = await prisma.userStory.create({
-        data: {
-            title: 'Homepage Design',
-            description: 'Design and implement the new homepage.',
-            status: 'READY',
-            projectId: project.id,
-        },
-    });
+    const seededStories = [];
+    for (const s of stories) {
+        const story = await prisma.userStory.create({ data: s });
+        seededStories.push(story);
+    }
 
     console.log('✅ User Stories seeded');
 
     // 6. Create Tasks
     const task1 = await prisma.task.create({
         data: {
-            title: 'Configure CI/CD Pipeline',
-            description: 'Set up GitHub Actions for automated testing and deployment.',
-            status: TaskStatus.DONE,
+            title: 'Terraform Scripts: Networking',
+            description: 'Define VPC and Security Group protocols using HCL.',
+            status: TaskStatus.IN_PROGRESS,
             priority: Priority.HIGH,
-            storyId: story1.id,
-            assigneeId: member.id,
-        },
+            assigneeId: dev.id,
+            storyId: seededStories[0].id,
+            dueDate: new Date('2024-04-15'),
+            estimatedMinutes: 12 * 60,
+        }
     });
 
     const task2 = await prisma.task.create({
         data: {
-            title: 'Setup Staging Environment',
-            description: 'Provision cloud resources for staging.',
-            status: TaskStatus.IN_PROGRESS,
-            priority: Priority.MEDIUM,
-            storyId: story1.id,
-            assigneeId: member.id,
-        },
-    });
-
-    const task3 = await prisma.task.create({
-        data: {
-            title: 'Draft Homepage Wireframes',
+            title: 'Security Audit: Networking',
+            description: 'Peer review of the network architecture for compliance with SOC2 protocol.',
             status: TaskStatus.TODO,
-            priority: Priority.MEDIUM,
-            storyId: story2.id,
-            assigneeId: lead.id, // Lead taking a design task
-        },
-    });
-
-    // 7. Blocks / Dependencies
-    // Task 2 depends on Task 1
-    await prisma.task.update({
-        where: { id: task2.id },
-        data: {
-            blockedBy: { connect: { id: task1.id } },
-        },
+            priority: Priority.CRITICAL,
+            assigneeId: admin.id,
+            storyId: seededStories[0].id,
+            dueDate: new Date('2024-04-20'),
+            estimatedMinutes: 4 * 60,
+        }
     });
 
     console.log('✅ Tasks & Dependencies seeded');
 
-    // 8. Comments
+    // 7. Add Comments
     await prisma.comment.create({
         data: {
-            content: 'CI/CD pipeline is ready. Check the docs.',
+            content: 'Network architecture must include redundant VPN gateways as per the new stakeholder requirement.',
+            authorId: stakeholder.id,
             taskId: task1.id,
-            authorId: member.id,
-        },
+        }
     });
 
     await prisma.comment.create({
         data: {
-            content: 'Great work! Proceeding with staging setup.',
-            taskId: task1.id, // Comment on completed task
-            authorId: lead.id,
-        },
+            content: 'Agreed. Will integrate into the Terraform manifests by EOD.',
+            authorId: dev.id,
+            taskId: task1.id,
+        }
     });
 
     console.log('✅ Comments seeded');
 
-    // 9. Workflows (Demo)
+    // 8. Create Workflow
     await prisma.workflow.create({
         data: {
-            name: 'Notify Stakeholder on Completion',
-            triggerType: 'PROJECT_COMPLETED',
-            description: 'Sends an email to the stakeholder when a project is marked done.',
-            actions: {
-                create: [
-                    {
-                        order: 1,
-                        type: 'EMAIL',
-                        config: {
-                            to: '{{project.stakeholder.email}}',
-                            subject: 'Project {{project.name}} Completed',
-                            body: 'Your project has been successfully delivered.',
-                        },
-                    },
-                ],
-            },
-        },
+            name: 'Deployment Protocol',
+            description: 'Automated workflow for staging to production promotion.',
+            isActive: true,
+            triggerType: 'MANUAL',
+            triggerConfig: {
+                triggers: ['test_passed', 'lead_approved'],
+                actions: ['deploy_to_k8s', 'notify_slack']
+            }
+        }
     });
 
     console.log('✅ Workflow seeded');
+
     console.log('🌱 Seeding finished.');
 }
 
