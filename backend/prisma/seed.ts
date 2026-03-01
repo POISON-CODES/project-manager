@@ -105,14 +105,42 @@ async function main() {
         } as any
     });
 
-    await prisma.formTemplate.create({
-        data: {
+    await prisma.formTemplate.upsert({
+        where: { id: 'generic-intake-form' },
+        update: {
+            title: 'Generic Project Intake',
+            description: 'Strategic intake protocol for cross-departmental initiatives.',
+            schema: {
+                sections: [
+                    {
+                        title: 'Mission Specification',
+                        fields: [
+                            { id: 'specDoc', name: 'specDoc', label: 'Technical Dossier', type: 'document' },
+                            { id: 'type', name: 'type', label: 'Project Classification', type: 'select' },
+                            { id: 'categories', name: 'categories', label: 'Initiative Vectors', type: 'multiselect' }
+                        ]
+                    }
+                ]
+            }
+        },
+        create: {
             id: 'generic-intake-form',
             title: 'Generic Project Intake',
             description: 'Strategic intake protocol for cross-departmental initiatives.',
             version: '1.0.0',
             isActive: true,
-            schema: {}
+            schema: {
+                sections: [
+                    {
+                        title: 'Mission Specification',
+                        fields: [
+                            { id: 'specDoc', name: 'specDoc', label: 'Technical Dossier', type: 'document' },
+                            { id: 'type', name: 'type', label: 'Project Classification', type: 'select' },
+                            { id: 'categories', name: 'categories', label: 'Initiative Vectors', type: 'multiselect' }
+                        ]
+                    }
+                ]
+            }
         } as any
     });
 

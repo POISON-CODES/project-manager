@@ -19,6 +19,7 @@ import { ConfigService } from '@nestjs/config';
 import { SearchModule } from './search/search.module';
 import { CalendarModule } from './calendar/calendar.module';
 import { StagesModule } from './stages/stages.module';
+import { SupabaseModule } from './common/supabase/supabase.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { StagesModule } from './stages/stages.module';
     AdminModule,
     CalendarModule,
     StagesModule,
+    SupabaseModule,
     BullBoardConfigModule,
     BullModule.forRootAsync({
       inject: [ConfigService],

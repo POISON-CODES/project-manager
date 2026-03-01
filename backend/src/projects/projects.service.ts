@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject } from '@nestjs/common';
+import { SupabaseClient } from '@supabase/supabase-js';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { PrismaService } from '../database/prisma.service';
@@ -10,6 +11,7 @@ export class ProjectsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly workflowsService: WorkflowsService,
+    @Inject('SUPABASE_CLIENT') private readonly supabase: SupabaseClient,
   ) { }
 
   /**
@@ -88,6 +90,48 @@ export class ProjectsService {
 
     const projects = await this.prisma.project.findMany({
       where,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        owner: { select: { id: true, name: true, email: true, avatarUrl: true } },
+        stories: {
+          include: {
+            tasks: {
+              select: { priority: true, status: true },
+            },
+          },
+        },
+      },
+    });
+
+    return projects.map((p) => {
+      const allTasks = p.stories.flatMap((s) => s.tasks);
+      const isHalted = allTasks.some((t: any) => t.status === 'HALTED');
+
+      return {
+        ...p,
+        isHalted,
+        taskStats: {
+          total: allTasks.length,
+          low: allTasks.filter((t: any) => t.priority === 'LOW').length,
+          medium: allTasks.filter((t: any) => t.priority === 'MEDIUM').length,
+          high: allTasks.filter((t: any) => t.priority === 'HIGH').length,
+          critical: allTasks.filter((t: any) => t.priority === 'CRITICAL').length,
+        },
+      };
+    });
+  }
+
+  /**
+   * Find all unclaimed projects.
+   *
+   * @returns List of unclaimed projects.
+   */
+  async findUnclaimedProjects() {
+    const projects = await this.prisma.project.findMany({
+      where: {
+        deletedAt: null,
+        ownerId: null,
+      },
       orderBy: { createdAt: 'desc' },
       include: {
         owner: { select: { id: true, name: true, email: true, avatarUrl: true } },
@@ -272,5 +316,33 @@ export class ProjectsService {
       where: { id },
       data: { deletedAt: new Date() },
     });
+  }
+
+  /**
+   * Upload a document to Supabase storage from the backend.
+   *
+   * @param file - The file received from the client.
+   * @returns Public URL of the vaulted document.
+   */
+  async uploadDocument(file: Express.Multer.File) {
+    const fileExt = file.originalname.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    const { error: uploadError } = await this.supabase.storage
+      .from('project-documents')
+      .upload(filePath, file.buffer, {
+        contentType: file.mimetype,
+      });
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    const { data: { publicUrl } } = this.supabase.storage
+      .from('project-documents')
+      .getPublicUrl(filePath);
+
+    return publicUrl;
   }
 }

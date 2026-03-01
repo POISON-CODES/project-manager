@@ -9,7 +9,10 @@ import {
   UseGuards,
   Req,
   UsePipes,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ProjectsService } from './projects.service';
 import { UserStoriesService } from '../user-stories/user-stories.service';
 import { Query } from '@nestjs/common';
@@ -75,8 +78,15 @@ export class ProjectsController {
   }
 
   @Get()
-  async findAll(@Query('formTemplateId') formTemplateId?: string) {
-    const data = await this.projectsService.findAll(formTemplateId);
+  async findAll(
+    @Query('formTemplateId') formTemplateId?: string,
+    @Query('unclaimedOnly') unclaimedOnly?: string,
+  ) {
+    const isUnclaimedOnly = unclaimedOnly === 'true';
+    const data = isUnclaimedOnly
+      ? await this.projectsService.findUnclaimedProjects()
+      : await this.projectsService.findAll(formTemplateId);
+
     return {
       success: true,
       data,
@@ -175,5 +185,21 @@ export class ProjectsController {
   @Delete(':id')
   async remove(@Param('id') id: string) {
     return this.projectsService.remove(id);
+  }
+
+  /**
+   * Upload a document to Supabase storage.
+   *
+   * @param file - The uploaded file.
+   * @returns The public URL of the uploaded document.
+   */
+  @Post('upload')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadDocument(@UploadedFile() file: Express.Multer.File) {
+    const data = await this.projectsService.uploadDocument(file);
+    return {
+      success: true,
+      data,
+    };
   }
 }
