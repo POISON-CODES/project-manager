@@ -1,0 +1,135 @@
+﻿M	.gitignore
+D	Backend planning/api_contracts.md
+D	Backend planning/backend_apis/api_routes_index.md
+D	Backend planning/backend_apis/forms/POST.md
+D	Backend planning/backend_apis/projects/GET.md
+D	Backend planning/backend_apis/projects/POST.md
+D	Backend planning/backend_apis/projects/detail/claim/PATCH.md
+D	Backend planning/backend_apis/tasks/GET.md
+D	Backend planning/backend_apis/users/GET.md
+D	Backend planning/backend_apis/users/PATCH.md
+D	Backend planning/backend_apis/workflows/POST.md
+D	Backend planning/tech_stack_and_conventions.md
+M	README.md
+A	api docs/ADMIN.md
+A	api docs/API_SUMMARY.md
+A	api docs/AUTH.md
+A	api docs/FORMS.md
+A	api docs/PROJECTS.md
+A	api docs/SEARCH.md
+A	api docs/STORIES.md
+A	api docs/TASKS.md
+A	api docs/USERS.md
+A	api docs/WORKFLOWS.md
+A	backend/.env.example
+A	backend/.prettierrc
+A	backend/README.md
+A	backend/check-prisma.ts
+A	backend/debug-db.ts
+A	backend/dump-users.ts
+A	backend/eslint.config.mjs
+A	backend/jest-integration.json
+A	backend/jest.json
+A	backend/nest-cli.json
+A	backend/package-lock.json
+M	backend/package.json
+A	backend/prisma/migrations/20260218201214_init/migration.sql
+A	backend/prisma/migrations/20260218203021_add_description_to_form_template/migration.sql
+A	backend/prisma/migrations/20260219061658_add_stakeholder_to_project/migration.sql
+A	backend/prisma/migrations/20260219144356_add_user_status_and_rbac_final/migration.sql
+A	backend/prisma/migrations/20260219200625_add_user_activity/migration.sql
+A	backend/prisma/migrations/20260221134118_add_calendar_and_scheduling_fields/migration.sql
+A	backend/prisma/migrations/20260221145042_add_project_stages/migration.sql
+A	backend/prisma/migrations/20260221192938_change_version_to_string/migration.sql
+A	backend/prisma/migrations/20260222185421_remove_project_status_adopt_stages_v2/migration.sql
+A	backend/prisma/migrations/migration_lock.toml
+M	backend/prisma/schema.prisma
+A	backend/prisma/seed.ts
+A	backend/promote-user.ts
+M	backend/src/admin/admin.controller.ts
+A	backend/src/admin/admin.module.ts
+A	backend/src/app.controller.spec.ts
+A	backend/src/app.controller.ts
+M	backend/src/app.module.ts
+A	backend/src/app.service.ts
+M	backend/src/auth/auth.controller.ts
+A	backend/src/auth/auth.module.ts
+A	backend/src/auth/auth.service.spec.ts
+M	backend/src/auth/auth.service.ts
+A	backend/src/auth/dto/login.dto.ts
+A	backend/src/auth/dto/signup.dto.ts
+M	backend/src/bull-board/bull-board.module.ts
+A	backend/src/calendar/calendar.controller.ts
+A	backend/src/calendar/calendar.module.ts
+A	backend/src/calendar/calendar.service.ts
+A	backend/src/calendar/dto/create-calendar-event.dto.ts
+M	backend/src/common/decorators/public.decorator.ts
+M	backend/src/common/decorators/roles.decorator.ts
+A	backend/src/common/filters/global-exception.filter.ts
+A	backend/src/common/guards/roles.guard.ts
+A	backend/src/common/pipes/zod-validation.pipe.ts
+A	backend/src/common/supabase/supabase.module.ts
+M	backend/src/config/env.schema.ts
+M	backend/src/database/database.module.ts
+M	backend/src/database/prisma.service.ts
+M	backend/src/forms/forms.controller.ts
+A	backend/src/forms/forms.module.ts
+A	backend/src/forms/forms.service.ts
+A	backend/src/projects/dto/create-project.dto.ts
+A	backend/src/projects/dto/update-project.dto.ts
+A	backend/src/projects/entities/project.entity.ts
+A	backend/src/projects/projects.controller.ts
+M	backend/src/projects/projects.integration.spec.ts
+A	backend/src/projects/projects.module.ts
+M	backend/src/projects/projects.service.ts
+A	backend/src/search/search.controller.ts
+A	backend/src/search/search.module.ts
+A	backend/src/search/search.service.spec.ts
+A	backend/src/search/search.service.ts
+A	backend/src/stages/stages.controller.ts
+A	backend/src/stages/stages.module.ts
+A	backend/src/stages/stages.service.ts
+A	backend/src/tasks/dto/create-task.dto.ts
+A	backend/src/tasks/dto/update-task.dto.ts
+A	backend/src/tasks/entities/task.entity.ts
+A	backend/src/tasks/tasks.controller.ts
+A	backend/src/tasks/tasks.module.ts
+M	backend/src/tasks/tasks.service.spec.ts
+M	backend/src/tasks/tasks.service.ts
+A	backend/src/user-stories/dto/create-user-story.dto.ts
+A	backend/src/user-stories/dto/update-user-story.dto.ts
+A	backend/src/user-stories/entities/user-story.entity.ts
+M	backend/src/user-stories/user-stories.controller.ts
+A	backend/src/user-stories/user-stories.module.ts
+A	backend/src/user-stories/user-stories.service.ts
+M	backend/src/user/user.controller.spec.ts
+M	backend/src/user/user.controller.ts
+A	backend/src/user/user.module.ts
+M	backend/src/user/user.service.spec.ts
+A	backend/src/user/user.service.ts
+A	backend/src/workflows/dto/create-workflow.dto.ts
+A	backend/src/workflows/workflow.processor.ts
+M	backend/src/workflows/workflows.controller.ts
+M	backend/src/workflows/workflows.module.ts
+A	backend/src/workflows/workflows.service.ts
+M	backend/test/api-extensions.e2e-spec.ts
+A	backend/test/app.e2e-spec.ts
+A	backend/test/forms.e2e-spec.ts
+A	backend/test/jest-e2e.json
+A	backend/test/projects.e2e-spec.ts
+A	backend/test/task-management.e2e-spec.ts
+A	backend/test/workflow-management.e2e-spec.ts
+A	backend/tsconfig.build.json
+A	backend/tsconfig.json
+A	frontend
+D	frontend/next.config.ts
+D	frontend/package.json
+D	frontend/src/app/(auth)/login/page.tsx
+D	frontend/src/app/(dashboard)/dashboard/page.tsx
+D	frontend/src/app/layout.tsx
+D	frontend/src/lib/api.ts
+D	frontend/src/lib/query-provider.tsx
+D	frontend/src/lib/utils.ts
+D	frontend/src/services/auth.service.ts
+D	frontend/tsconfig.json
+A	implementation_plan_calendar.md
